@@ -1,0 +1,198 @@
+%% Finding the depths of the blocks
+% 1. Load and convert
+img = imread('task2_Depth.png');
+hsvImg = rgb2hsv(img);
+
+% 2. Define thresholds for "Block Red/Orange"
+% Hue is 0 to 1. Red is usually < 0.05 or > 0.95.
+hueMin = 0.00;
+hueMax = 0.10; % Adjust this to capture more orange or less red
+satMin = 0.50; % Ignore "washed out" colors
+valMin = 0.40; % Ignore very dark areas (the black voids)
+
+% 3. Create the Mask
+% This logical operation finds pixels that meet ALL our color criteria
+mask = (hsvImg(:,:,1) >= hueMin & hsvImg(:,:,1) <= hueMax) & ...
+(hsvImg(:,:,2) >= satMin) & ...
+(hsvImg(:,:,3) >= valMin);
+
+% 4. Clean up the foreground noise
+% Use 'imopen' to remove small stray colored pixels in the foreground
+se = strel('disk', 3);
+cleanMask = imopen(mask, se);
+
+% 5. Visualize the result
+maskedImage = img;
+maskedImage(repmat(~cleanMask, [1 1 3])) = 0; % Turn non-block pixels black
+
+imshow(maskedImage);
+title('Isolated Blocks (Foreground Colors Removed)');
+
+
+% 1. Load the image
+img = imread('task2_Depth.png');
+
+% 2. Convert to grayscale to represent relative depth
+% (Note: If you have the raw .mat or 16-bit depth file, use that instead!)
+depthMap = rgb2gray(maskedImage);
+imshow(depthMap)
+
+% 3. Segment the blocks
+% Looking at your image, the blocks are bright/distinct.
+% We'll use a threshold. Adjust 0.6 if it picks up too much background.
+bw = imbinarize(depthMap, 'adaptive', 'Sensitivity', 0.6);
+
+% Clean up noise (remove small spots)
+bw = bwareaopen(bw, 50);
+imshow(bw)
+
+% 4. Identify individual blocks
+stats = regionprops('table', bw, depthMap, 'Centroid', 'MeanIntensity', 'PixelValues');
+
+% 5. Display Results
+imshow(img); hold on;
+fprintf('Block ID | Approx Depth (Intensity)\n');
+fprintf('----------------------------------\n');
+
+% Define your sensor's range (example values)
+minDist = 0.5; % meters
+maxDist = 3.5; % meters
+
+fprintf('Block ID | Intensity (0-255) | Approx Distance (m)\n');
+fprintf('--------------------------------------------------\n');
+
+for i = 1:height(stats)
+val = stats.MeanIntensity(i);
+% Convert intensity to a distance estimate
+realDist = minDist + (val/255) * (maxDist - minDist);
+fprintf('Block %d | %15.2f | %18.2f m\n', i, val, realDist);
+if val > 110 && val < 125
+fprintf('Block selected %d with intensity %d\n', i, val);
+loc = stats.Centroid(i, :);
+text(loc(1), loc(2), num2str(i), 'Color', 'white', 'FontSize', 12, 'FontWeight', 'bold');
+end
+end
+hold off;
+
+
+%% Frame assignment on the blocks themselves
+% FINAL 
+
+% Read image
+
+% Convert color space
+
+% Segment objects
+
+% Clean mask
+
+% Extract geometry
+
+% Print measurements
+
+% Visualize pose
+
+clc; 
+clear; 
+close all;
+
+%% -------------------- 1. Read Image --------------------
+imgRGB = imread("task2_Color.png");   % Load RGB image
+figure; imshow(imgRGB);
+title('Original RGB Image');
+
+%% -------------------- 2. Convert to LAB --------------------
+imgLab = rgb2lab(imgRGB);             % Convert RGB → LAB
+[L,a,b] = imsplit(imgLab);            % Split channels
+imshow(imgLab)
+%% -------------------- 3. Segment Yellow Block --------------------
+yellowMask = b > 51;                 
+yellowMask = bwareaopen(yellowMask, 200);
+imshow(yellowMask)
+
+%% -------------------- 4. Extract Properties --------------------
+% Extract geometric properties
+yellowStats = regionprops(yellowMask, ...
+    'BoundingBox','Centroid','Area','Orientation', 'MajorAxisLength', 'MinorAxisLength')
+
+%% -------------- 5. Making a box around the block with the right orientation --------------
+
+theta = -deg2rad(yellowStats.Orientation)   % Convert to radians
+cx = yellowStats.Centroid(1);
+cy = yellowStats.Centroid(2);
+
+L = yellowStats.MajorAxisLength / 2
+W = yellowStats.MinorAxisLength / 2
+
+% Rectangle corners before rotation
+corners = [ -L -W;
+             L -W;
+             L  W;
+            -L  W]';
+
+% Rotation matrix
+R = [cos(theta) -sin(theta);
+     sin(theta)  cos(theta)];
+
+rotated = R * corners;
+
+x = rotated(1,:) + cx;
+y = rotated(2,:) + cy;
+
+imshow(yellowMask)
+hold on 
+    plot([x x(1)], [y y(1)], 'r', 'LineWidth', 2)
+hold off
+
+
+% ------------ 6. putting everything down on the final image ------------
+imshow(imgRGB)
+hold on
+
+    % Making the frame on the yellow block
+
+        plot([x x(1)], [y y(1)], 'k', 'LineWidth', 2)
+        axisLength = 80; 
+        % Adjust for image coordinate system (Y points downward)
+        x_axis = axisLength * [cos(theta); -sin(theta)];
+        y_axis = axisLength * [sin(theta);  cos(theta)];
+        % Draw block coordinate frame
+        quiver(cx, cy, x_axis(1), x_axis(2), ...
+            0, 'r','LineWidth',1,'MaxHeadSize',1);   % X-axis
+    
+        quiver(cx, cy, y_axis(1), y_axis(2), ...
+            0, 'g','LineWidth',1,'MaxHeadSize',1);   % Y-axis
+    
+        % Z-axis symbol (out of plane)
+        text(cx, cy, '  \odot Z_b', ...
+            'Color','c','FontSize',5,'FontWeight','bold');
+
+    % Making the center frame
+
+        % Get image size
+        [rows, cols, ~] = size(imgRGB);
+        % Center of image
+        center_x = cols / 2;
+        center_y = rows / 2;
+        theta_c = 0;
+        % Convert to radians
+        theta_c = deg2rad(theta_c);
+        % Rotation matrix
+        R = [cos(theta_c) -sin(theta_c);
+             sin(theta_c)  cos(theta_c)];
+        % Define axis vectors before rotation
+        x_axis_c = [axisLength; 0];
+        y_axis_c = [0; axisLength];
+        % Rotate axes
+        x_rot = R * x_axis_c;
+        y_rot = R * y_axis_c;
+
+        quiver(center_x, center_y, x_rot(1), x_rot(2), ...
+            0, 'r','LineWidth',1,'MaxHeadSize',1);   % X-axis
+    
+        quiver(center_x, center_y, y_rot(1), y_rot(2), ...
+            0, 'g','LineWidth',1,'MaxHeadSize',1);   % Y-axis
+    
+        % Mark origin
+        plot(center_x, center_y, 'g', 'MarkerSize', 8, 'LineWidth', 2)
+hold off
