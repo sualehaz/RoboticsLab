@@ -1,0 +1,83 @@
+%% Task 2.7
+% Identifying Green Cube
+imgRGB = imread("task2_Color.png");
+imshow(imgRGB)
+imgLab = rgb2lab(imgRGB);
+[L,a,b] = imsplit(imgLab);
+imshow(a,[])
+
+	
+greenMask = a < -16;
+imshow(greenMask)
+
+Goverlay = imoverlay(imgRGB, ~greenMask, "k");
+imshow(Goverlay)
+
+
+% Identifying Red Cube
+
+redMask = a > 32;
+imshow(redMask)
+
+Roverlay = imoverlay(imgRGB, ~redMask, "k");
+imshow(Roverlay)
+
+% Identifying Yellow Cube
+
+yellowMask = b > 51;
+imshow(yellowMask)
+
+Yoverlay = imoverlay(imgRGB, ~yellowMask, "k");
+imshow(Yoverlay)
+
+%% Task 2.9
+imgMask = redMask | greenMask | yellowMask | blueMask;
+imshow(imgMask)
+
+cubemask = bwpropfilt(imgMask, "Area", [4000 12000]);
+cube = bwconncomp(cubemask);  % group pixels that belong to the same cube.
+%{[7795×1 double]  [7560×1 double]  [4490×1 double]  [11041×1 double]}
+a = labelmatrix(cube);
+
+cubeRGB = label2rgb(a,"jet","k","shuffle");
+imshow(cubeRGB)
+% Identifying Blue Cube
+
+blueMask = b < -31;
+imshow(blueMask)
+
+Boverlay = imoverlay(imgRGB, ~blueMask, "k");
+imshow(Boverlay)
+
+%% Checking when Labeling Method Fails
+
+imgRGBErr = imread("rob_lab2_error.jpeg");
+imshow(imgRGBErr)
+imgLabErr = rgb2lab(imgRGBErr);
+[L,a,b] = imsplit(imgLabErr);
+
+greenMask = a < -16;
+
+Goverlay = imoverlay(imgRGBErr, ~greenMask, "k");
+
+redMask = a > 32 & b < 40;
+
+Roverlay = imoverlay(imgRGBErr, ~redMask, "k");
+
+yellowMask = b > 40;
+
+Yoverlay = imoverlay(imgRGBErr, ~yellowMask, "k");
+
+blueMask = b < -20;
+
+Boverlay = imoverlay(imgRGBErr, ~blueMask, "k");
+
+imgMask = redMask | greenMask | yellowMask | blueMask;
+imshow(imgMask)
+
+cubemask = bwpropfilt(imgMask, "Area", [1000 20000]); %PixelIdxList: {[5380×1 double]  [1446×1 double]  [4217×1 double]}
+cube = bwconncomp(cubemask);
+a = labelmatrix(cube);
+
+cubeRGB = label2rgb(a,"jet","k","shuffle");
+imshow(cubeRGB)
