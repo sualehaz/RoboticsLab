@@ -1,0 +1,158 @@
+%obtaining depth and rgb from depth_sensor function
+[depth_img, rgb_img, depth_data] = depth_sensor()
+
+
+%% 1. Read Image
+imgRGB = rgb_img;
+figure; imshow(imgRGB);
+title('Original RGB Image');
+
+%% 2. Convert to LAB
+imgLab = rgb2lab(imgRGB); % Switch to LAB space to make color separation easier
+[L,a,b] = imsplit(imgLab); % Break it down into lightness and color channels
+imshow(imgLab)
+title ('LAB image');
+
+%% 3. Segment Yellow Block
+yellowMask = b > 25; % Isolating yellow using the 'b' channel (blue-yellow)
+yellowMask = bwareaopen(yellowMask, 200); % Getting rid of small noise or "speckles"
+imshow(yellowMask)
+title ('yellow mask applied');
+
+%% 4. Extract Properties
+% Use regionprops to find where the block is and how it's sitting
+yellowStats = regionprops(yellowMask, ...
+'BoundingBox','Centroid','Area','Orientation', 'MajorAxisLength','MinorAxisLength')
+
+%% 5. Making a box around the block with the right orientation
+theta = -deg2rad(yellowStats.Orientation) % Flipping the angle to radians for math
+cx = yellowStats.Centroid(1) % Center point X
+cy = yellowStats.Centroid(2) % Center point Y
+L = yellowStats.MajorAxisLength / 2; % Half-length
+W = yellowStats.MinorAxisLength / 2; % Half-width
+% Setting up the corners of a rectangle centered at (0,0) before we rotate it
+corners = [ -L -W;
+L -W;
+L W;
+-L W]';
+
+% Standard 2D rotation matrix
+R = [cos(theta) -sin(theta);
+sin(theta) cos(theta)];
+rotated = R * corners; % Spin the corners by our angle
+% Move the rotated box back onto the actual block position
+x = rotated(1,:) + cx;
+y = rotated(2,:) + cy;
+imshow(yellowMask)
+title('bounding box applied');
+hold on
+plot([x x(1)], [y y(1)], 'r', 'LineWidth', 2)
+hold off
+
+% 6. putting everything down on the final image
+imshow(imgRGB)
+title ('Final Image with Orientation Labelled')
+hold on
+% Draw the box and local axes on the yellow block
+plot([x x(1)], [y y(1)], 'k', 'LineWidth', 2)
+axisLength = 80;
+
+%7. Defining local X and Y axes for the block
+x_axis = axisLength * [cos(theta); -sin(theta)];
+y_axis = axisLength * [sin(theta); cos(theta)];
+
+quiver(cx, cy, x_axis(1), x_axis(2), ...
+0, 'r','LineWidth',1,'MaxHeadSize',1); % Draw X-axis in Red
+quiver(cx, cy, y_axis(1), y_axis(2), ...
+0, 'g','LineWidth',1,'MaxHeadSize',1); % Draw Y-axis in Green
+
+% Visual cue for the Z-axis pointing up at the camera
+text(cx, cy, ' \odot Z_b', ...
+'Color','c','FontSize',5,'FontWeight','bold');
+
+% 8. Marking the Camera Frame (center of the image)
+[rows, cols, ~] = size(imgRGB);
+center_x = cols / 2;
+center_y = rows / 2;
+theta_c = 0;
+
+theta_c = deg2rad(theta_c);
+R_mat = [cos(theta_c) -sin(theta_c);
+sin(theta_c) cos(theta_c)];
+
+x_axis_c = [axisLength; 0];
+y_axis_c = [0; axisLength];
+
+x_rot = R_mat * x_axis_c;
+y_rot = R_mat * y_axis_c;
+quiver(center_x, center_y, x_rot(1), x_rot(2), ...
+0, 'r','LineWidth',1,'MaxHeadSize',1); % Camera X
+
+quiver(center_x, center_y, y_rot(1), y_rot(2), ...
+0, 'g','LineWidth',1,'MaxHeadSize',1); % Camera Y
+plot(center_x, center_y, 'g', 'MarkerSize', 8, 'LineWidth', 2)
+hold off
+
+%% 9. 3D Transformation (Camera to Block) and finding physical dimensions of depth
+
+height = []
+maskedDepth = depth_img .* yellowMask; % Multiplying mask with depth image to find the height of the yellow block only
+[rows, cols] = size(maskedDepth);
+k=1;
+for i = 1:rows
+for j = 1:cols
+if maskedDepth(i,j) > 0
+height(k) = maskedDepth(i,j);
+k= k+1;
+end
+end
+end
+avg_block_z = median(height) * 100 % height of block in cm
+
+depthToBlock = avg_block_z; % This is the Z distance from the camera lens to the block top
+% Calibration: How many centimeters is one pixel?
+pixelToCm = 0.1;
+tx = (cx - center_x) * pixelToCm;
+ty = (cy - center_y) * pixelToCm;
+tz = depthToBlock;
+% Create the 3D rotation matrix for the block around the Z-axis
+R_cb = [ cos(theta) -sin(theta) 0;
+sin(theta) cos(theta) 0;
+0 0 1];
+% Combine rotation and translation into one 4x4 Transformation Matrix
+T_c_b = [ R_cb, [tx; ty; tz];
+0, 0, 0, 1 ];
+% Print the results to the command window
+fprintf('\n--- Transformation Matrix (Camera to Block) ---\n');
+disp(T_c_b);
+fprintf('Block position relative to Camera (cm):\n');
+fprintf('X: %.2f, Y: %.2f, Z: %.2f\n', tx, ty, tz);
+%% 8. 3D Visualization
+figure;
+hold on; grid on; axis equal;
+xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
+title('3D Workspace Visualization (Camera to Block)');
+% Setup the camera frame at the origin (0,0,0)
+% We reverse Z-direction so "down" looks correct in the 3D plot
+set(gca, 'ZDir', 'reverse');
+quiver3(0,0,0, 5, 0, 0, 'r', 'LineWidth', 2); % Camera X
+quiver3(0,0,0, 0, 5, 0, 'g', 'LineWidth', 2); % Camera Y
+quiver3(0,0,0, 0, 0, 5, 'b', 'LineWidth', 2); % Camera Z
+text(0,0,0, ' Camera', 'FontSize', 10, 'FontWeight', 'bold');
+% Plot the block's frame using the values from our T_c_b matrix
+bx = T_c_b(1,4);
+by = T_c_b(2,4);
+bz = T_c_b(3,4);
+% Pull the rotated directions for the block's X, Y, and Z axes
+ux = T_c_b(1:3, 1) * 5;
+uy = T_c_b(1:3, 2) * 5;
+uz = T_c_b(1:3, 3) * 5;
+quiver3(bx, by, bz, ux(1), ux(2), ux(3), 'r', 'LineWidth', 2); % Block X
+quiver3(bx, by, bz, uy(1), uy(2), uy(3), 'g', 'LineWidth', 2); % Block Y
+quiver3(bx, by, bz, uz(1), uz(2), uz(3), 'b', 'LineWidth', 2); % Block Z
+plot3(bx, by, bz, 'ko', 'MarkerFaceColor', 'y', 'MarkerSize', 8);
+text(bx, by, bz, ' Yellow Block', 'FontSize', 10);
+% Draw a dashed line from the camera to the block to show the path
+plot3([0 bx], [0 by], [0 bz], 'k--');
+view(3); % Tilt the view so we can see the 3D depth
+hold off;
