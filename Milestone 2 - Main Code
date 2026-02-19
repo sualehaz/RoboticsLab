@@ -1,6 +1,6 @@
+%updated code from the report 
 %obtaining depth and rgb from depth_sensor function
 [depth_img, rgb_img, depth_data] = depth_sensor()
-
 
 %% 1. Read Image
 imgRGB = rgb_img;
@@ -20,7 +20,7 @@ imshow(yellowMask)
 title ('yellow mask applied');
 
 %% 4. Extract Properties
-% Use regionprops to find where the block is and how it's sitting
+Use regionprops to find where the block is and how it's sitting
 yellowStats = regionprops(yellowMask, ...
 'BoundingBox','Centroid','Area','Orientation', 'MajorAxisLength','MinorAxisLength')
 
@@ -49,7 +49,8 @@ hold on
 plot([x x(1)], [y y(1)], 'r', 'LineWidth', 2)
 hold off
 
-% 6. putting everything down on the final image
+%% 6. putting everything down on the final image
+
 imshow(imgRGB)
 title ('Final Image with Orientation Labelled')
 hold on
@@ -57,20 +58,24 @@ hold on
 plot([x x(1)], [y y(1)], 'k', 'LineWidth', 2)
 axisLength = 80;
 
-%7. Defining local X and Y axes for the block
-x_axis = axisLength * [cos(theta); -sin(theta)];
-y_axis = axisLength * [sin(theta); cos(theta)];
+
+%% 7. Defining local X and Y axes for the block
+
+y_axis = axisLength * R(1:2,2); %on the shorter edge
+x_axis = axisLength * R(1:2,1); %on the longer edge
 
 quiver(cx, cy, x_axis(1), x_axis(2), ...
 0, 'r','LineWidth',1,'MaxHeadSize',1); % Draw X-axis in Red
 quiver(cx, cy, y_axis(1), y_axis(2), ...
 0, 'g','LineWidth',1,'MaxHeadSize',1); % Draw Y-axis in Green
 
-% Visual cue for the Z-axis pointing up at the camera
+% Visual cue for the Z-axis pointing down at the camera
 text(cx, cy, ' \odot Z_b', ...
 'Color','c','FontSize',5,'FontWeight','bold');
 
-% 8. Marking the Camera Frame (center of the image)
+
+%% 8. Marking the Camera Frame (center of the image)
+
 [rows, cols, ~] = size(imgRGB);
 center_x = cols / 2;
 center_y = rows / 2;
@@ -94,7 +99,6 @@ plot(center_x, center_y, 'g', 'MarkerSize', 8, 'LineWidth', 2)
 hold off
 
 %% 9. 3D Transformation (Camera to Block) and finding physical dimensions of depth
-
 height = []
 maskedDepth = depth_img .* yellowMask; % Multiplying mask with depth image to find the height of the yellow block only
 [rows, cols] = size(maskedDepth);
@@ -127,7 +131,8 @@ fprintf('\n--- Transformation Matrix (Camera to Block) ---\n');
 disp(T_c_b);
 fprintf('Block position relative to Camera (cm):\n');
 fprintf('X: %.2f, Y: %.2f, Z: %.2f\n', tx, ty, tz);
-%% 8. 3D Visualization
+
+%% 10. 3D Visualization
 figure;
 hold on; grid on; axis equal;
 xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
