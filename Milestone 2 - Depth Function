@@ -1,3 +1,4 @@
+%(updated code from the report implementing depth fully)
 function [depth_img, rgb_img, data3] = depth_sensor()
 %% Create all objects to be used in this file
 % Make Pipeline object to manage streaming
