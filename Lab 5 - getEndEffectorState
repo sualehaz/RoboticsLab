@@ -1,0 +1,77 @@
+function [pos, ori] = getEndEffectorState(arb)
+    % This function queries the robot, calculates the transformation matrix,
+    % and returns the Position [x, y, z] and Orientation [phi_deg].
+
+    % --- DH Parameters (From your provided code) ---
+    a = [0 10.264 10.264 7.11];
+    alpha = deg2rad([-90 0 0 0]);
+    d = [13.9 0 0 0];
+    offset1 = deg2rad(90)
+    offset2 = deg2rad(-90);
+    
+    % --- Step 1: Query Servo Angles ---
+    fprintf('Querying motor encoders...\n');
+    servoAngles = [arb.getpos(1) arb.getpos(2)+offset2 arb.getpos(3) arb.getpos(4)]
+    fprintf('Raw Servo Angles: [%.2f, %.2f, %.2f, %.2f]\n', servoAngles);
+
+    % --- Step 2: Convert to DH Angles ---
+    theta = servo2dh(servoAngles);
+    
+    % --- Step 3: Compute Transformation Matrix ---
+    T = eye(4,4);
+    for i = 1:4
+        th = servoAngles(i);
+        di = d(i);
+        ai = a(i);
+        al = alpha(i);
+
+        Ti = [cos(th)  -sin(th)*cos(al)   sin(th)*sin(al)   ai*cos(th);
+              sin(th)   cos(th)*cos(al)  -cos(th)*sin(al)   ai*sin(th);
+              0         sin(al)           cos(al)           di;
+              0         0                 0                 1];
+
+        T = T * Ti
+        fprintf('Processed Link %d transformation.\n', i);
+    end
+
+    % --- Step 4: Extract Position and Orientation ---
+    x = T(1,4);
+    y = T(2,4);
+    z = T(3,4);
+    pos = [x, y, z];
+    
+    R = T(1:3, 1:3);
+    phi = atan2(R(3,1), R(3,2));
+    ori = rad2deg(phi);
+
+
+
+    fprintf('Displaying robot model: \n');
+
+    robot = rigidBodyTree("MaxNumBodies",4,"DataFormat","row");
+
+    for i = 1:4
+        body  = rigidBody(['link' num2str(i)]);
+        joint = rigidBodyJoint(['joint' num2str(i)], 'revolute');
+        setFixedTransform(joint, [a(i) alpha(i) d(i) 0], 'dh');
+        body.Joint = joint;
+        
+        % Determine the parent name
+        if i == 1
+            parentName = 'base'; % The first link attaches to the base
+        else
+            parentName = ['link' num2str(i-1)]; % Subsequent links attach to the previous one
+        end
+        
+        % Add the body using the parent's NAME (string), not the joint object
+        addBody(robot, body, parentName);
+    end
+    
+    showdetails(robot); % Verify the structure
+    figure;
+    show(robot, servoAngles); % This displays the robot at the queried angles
+    title('Current Robot State');
+    axis([-30 30 -30 30 0 40]); % Adjust axes to see the movement clearly
+    grid on;
+
+end
