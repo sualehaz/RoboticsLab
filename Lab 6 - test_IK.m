@@ -1,4 +1,3 @@
-clc; clear all;
 arb = Arbotix('port', 'COM3', 'nservos', 5);
 d1 = 13.9; 
 a2 = 10.264; 
@@ -11,9 +10,9 @@ alpha = deg2rad([90 0 0 0]);
 d = [13.9 0 0 0];
 link_lengths = [13.9 10.264 10.264 7.11];
 
-target_x = -7; 
-target_y = -18;   
-target_z = 9;  
+target_x = -8; 
+target_y = 12.5;   
+target_z = 12;  
 target_phi = -pi/2; % Jaws pointing straight down (-90 degrees)
 nonColliding_th = [];
 
@@ -22,6 +21,7 @@ fprintf('Testing IK for Target Pose: X=%.2f, Y=%.2f, Z=%.2f, Phi=%.2f rad\n', ..
     target_x, target_y, target_z, target_phi);
 fprintf('-------------------------------------------------------------\n');
 
+%inverse solutions
 ik_solutions = findJointAngles(target_x, target_y, target_z, target_phi)
 
 num_solutions = size(ik_solutions, 1)
@@ -35,7 +35,8 @@ else
         th = ik_solutions(i, :)
         fk_sol = getEndEffectorState2(th(1), th(2), th(3), th(4))
         fprintf('Displaying robot model: \n');
-    
+
+        % making the rigid body
         robot = rigidBodyTree("MaxNumBodies",4,"DataFormat","row");
     
         for j = 1:4
@@ -48,7 +49,7 @@ else
             len = link_lengths(j);
             collisionObj = collisionCylinder(1.5, len); 
 
-
+            % adusting the pose of the collision cylinders
             if j == 1
                 parentName = 'base';
                 rotation = axang2tform([1 0 0 pi/2]);
@@ -65,24 +66,27 @@ else
             addCollision(body, collisionObj);
             addBody(robot, body, parentName);
         end
-        
-        showdetails(robot);
+         %showdetails(robot);
         figure;
-        show(robot, th, 'Collisions', 'on', 'Visuals', 'on'); 
+        % show(robot, th, 'Collisions', 'on', 'Visuals', 'on'); drawnow;
         title('Current Robot State');
         axis([-30 30 -30 30 0 40]);
         grid on;
             % getting current robot position
-        curr_theta = [arb.getpos(1) arb.getpos(2) arb.getpos(3) arb.getpos(4)]
+        curr_theta = [arb.getpos(1)+deg2rad(180) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
+        out = getEndEffectorState2(curr_theta(1), curr_theta(2), curr_theta(3), curr_theta(4))
+        % curr_theta = [0.5 0.5 0.5 0.5]
         % check for collision
         isCollision = checkSelfCollision1(robot, curr_theta, th)
     
         if isCollision == 0
            nonColliding_th = [nonColliding_th; th];
         end
+       
     end
+    
     %number of solutions that don't collide
-    nonColliding_th
+    nonColliding_th;
     %flag for checking whether the solutions fall under the range
     range_check = 1;
     %array for getting the final solution
@@ -102,9 +106,9 @@ else
         end
         %via flag making sure whether a solution has been finalized
         %validating both range and collision
-        selected_th(1)
+
         if range_check == 1
-            arb.setpos(1,selected_th(1),100)
+            arb.setpos(1,selected_th(1)-deg2rad(180),100)
             arb.setpos(2,selected_th(2)-deg2rad(90),100)
             arb.setpos(3,selected_th(3),100)
             arb.setpos(4,selected_th(4),100)
@@ -115,5 +119,8 @@ else
     end
 end
 
+
+
+
     
-    
+  
