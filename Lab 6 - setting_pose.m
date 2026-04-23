@@ -15,9 +15,9 @@ function setting_pose(target_x, target_y, target_z)
     fprintf('-------------------------------------------------------------\n');
     
     %inverse solutions
-    ik_solutions = findJointAngles(target_x, target_y, target_z, target_phi)
+    ik_solutions = findJointAngles(target_x, target_y, target_z, target_phi);
     
-    num_solutions = size(ik_solutions, 1)
+    num_solutions = size(ik_solutions, 1);
     
     if num_solutions == 0
         fprintf('No valid IK solutions found. The point might be out of reach.\n');
@@ -68,7 +68,7 @@ function setting_pose(target_x, target_y, target_z)
                 % getting current robot position
             % curr_theta = [arb.getpos(1)+deg2rad(180) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
             % out = getEndEffectorState2(curr_theta(1), curr_theta(2), curr_theta(3), curr_theta(4))
-            curr_theta = [0.5 0.5 0.5 0.5]
+            curr_theta = [-1.5 0.5 0.5 0.5]
             % check for collision
             isCollision = checkSelfCollision1(robot, curr_theta, th)
         
@@ -79,35 +79,44 @@ function setting_pose(target_x, target_y, target_z)
         end
         
         %number of solutions that don't collide
-        nonColliding_th;
+        ik_solutions
+        nonColliding_th
         %flag for checking whether the solutions fall under the range
         range_check = 1;
         %array for getting the final solution
         selected_th = [];
+        %array of solutions that are clear to execute
+        acceptable_sol = [];
         if isempty(nonColliding_th)
             fprintf("All solutions are colliding\n");
         else
             %checking whether each non-colliding solution falls under the
             %required range
-            for k = 1:size(nonColliding_th(1,:))
-                selected_th  = nonColliding_th(k,:)
+            for k = 1:length(nonColliding_th(:, 1))
+                selected_th  = nonColliding_th(k,:);
+                range_check = 1;
                 for i = 2:4
                     if (selected_th(i) > deg2rad(150) || selected_th(i) < deg2rad(-150))
                         range_check = 0;
                     end
-                end        
+                end 
+                % Adding into the array of acceptable solutions 
+                if range_check == 1
+                    acceptable_sol = [acceptable_sol; selected_th]
+                end       
             end
-            %via flag making sure whether a solution has been finalized
-            %validating both range and collision
+
+            % finding the optimal solution
+            optimal = find_optimal(curr_theta,acceptable_sol)
     
-            if range_check == 1
+            if isempty(optimal)
+                fprintf("None of the solutions are in range\n");
+                
+             else
                 % arb.setpos(1,selected_th(1)-deg2rad(180),100)
                 % arb.setpos(2,selected_th(2)-deg2rad(90),100)
                 % arb.setpos(3,selected_th(3),100)
                 % arb.setpos(4,selected_th(4),100)
-    
-             else
-                fprintf("None of the solutions are in range\n");
              end
         end
     end
