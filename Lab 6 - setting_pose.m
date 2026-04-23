@@ -1,5 +1,5 @@
 
-function setting_pose(target_x, target_y, target_z)
+function setting_pose(arb, target_x, target_y, target_z)
 
     a = [0 10.264 10.264 7.11];
     alpha = deg2rad([90 0 0 0]);
@@ -66,9 +66,9 @@ function setting_pose(target_x, target_y, target_z)
             axis([-30 30 -30 30 0 40]);
             grid on;
                 % getting current robot position
-            % curr_theta = [arb.getpos(1)+deg2rad(180) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
+             curr_theta = [arb.getpos(1)+deg2rad(180) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
             % out = getEndEffectorState2(curr_theta(1), curr_theta(2), curr_theta(3), curr_theta(4))
-            curr_theta = [-1.5 0.5 0.5 0.5]
+            % curr_theta = [-1.5 0.5 0.5 0.5]
             % check for collision
             isCollision = checkSelfCollision1(robot, curr_theta, th)
         
@@ -113,10 +113,10 @@ function setting_pose(target_x, target_y, target_z)
                 fprintf("None of the solutions are in range\n");
                 
              else
-                % arb.setpos(1,selected_th(1)-deg2rad(180),100)
-                % arb.setpos(2,selected_th(2)-deg2rad(90),100)
-                % arb.setpos(3,selected_th(3),100)
-                % arb.setpos(4,selected_th(4),100)
+                 arb.setpos(1,selected_th(1)-deg2rad(180),100)
+                 arb.setpos(2,selected_th(2)-deg2rad(90),100)
+                 arb.setpos(3,selected_th(3),100)
+                 arb.setpos(4,selected_th(4),100)
              end
         end
     end
