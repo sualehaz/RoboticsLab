@@ -23,6 +23,13 @@ figure;
 imshow(yellowMask)
 title ('yellow mask applied');
 
+%% 3. Segment Blue Block
+blueMask = b < -22; % Isolating yellow using the 'b' channel (blue-yellow)
+blueMask = bwareaopen(blueMask, 200); % Getting rid of small noise or "speckles"
+figure;
+imshow(blueMask)
+title ('blue mask applied');
+
 %% 4. Extract Properties
 %Use regionprops to find where the block is and how it's sitting
 yellowStats = regionprops(yellowMask, ...
