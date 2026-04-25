@@ -1,6 +1,7 @@
 
-function setting_pose(arb, target_x, target_y, target_z)
+function err = setting_pose(arb, target_x, target_y, target_z)
 
+    err = 0;
     a = [0 10.264 10.264 7.11];
     alpha = deg2rad([90 0 0 0]);
     d = [13.9 0 0 0];
@@ -21,9 +22,10 @@ function setting_pose(arb, target_x, target_y, target_z)
     
     if num_solutions == 0
         fprintf('No valid IK solutions found. The point might be out of reach.\n');
+        err = 1;
     else
         fprintf('Found %d valid IK solutions:\n\n', num_solutions);
-    
+        figure;
         for i = 1:num_solutions
             th = ik_solutions(i, :)
             fk_sol = getEndEffectorState2(th(1), th(2), th(3), th(4))
@@ -60,13 +62,12 @@ function setting_pose(arb, target_x, target_y, target_z)
                 addBody(robot, body, parentName);
             end
              %showdetails(robot);
-            figure;
-            % show(robot, th, 'Collisions', 'on', 'Visuals', 'on'); drawnow;
+
             title('Current Robot State');
             axis([-30 30 -30 30 0 40]);
             grid on;
                 % getting current robot position
-             curr_theta = [arb.getpos(1)+deg2rad(180) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
+            curr_theta = [arb.getpos(1) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
             % out = getEndEffectorState2(curr_theta(1), curr_theta(2), curr_theta(3), curr_theta(4))
             % curr_theta = [-1.5 0.5 0.5 0.5]
             % check for collision
@@ -77,7 +78,7 @@ function setting_pose(arb, target_x, target_y, target_z)
             end
            
         end
-        
+        figure;
         %number of solutions that don't collide
         ik_solutions
         nonColliding_th
@@ -89,14 +90,15 @@ function setting_pose(arb, target_x, target_y, target_z)
         acceptable_sol = [];
         if isempty(nonColliding_th)
             fprintf("All solutions are colliding\n");
+            err = 1;
         else
             %checking whether each non-colliding solution falls under the
             %required range
             for k = 1:length(nonColliding_th(:, 1))
                 selected_th  = nonColliding_th(k,:);
                 range_check = 1;
-                for i = 2:4
-                    if (selected_th(i) > deg2rad(150) || selected_th(i) < deg2rad(-150))
+                for i = 1:4
+                    if (selected_th(i) > deg2rad(149) || selected_th(i) < deg2rad(-150))
                         range_check = 0;
                     end
                 end 
@@ -106,18 +108,25 @@ function setting_pose(arb, target_x, target_y, target_z)
                 end       
             end
 
-            % finding the optimal solution
-            optimal = find_optimal(curr_theta,acceptable_sol)
-    
-            if isempty(optimal)
-                fprintf("None of the solutions are in range\n");
-                
-             else
-                 arb.setpos(1,selected_th(1)-deg2rad(180),100)
-                 arb.setpos(2,selected_th(2)-deg2rad(90),100)
-                 arb.setpos(3,selected_th(3),100)
-                 arb.setpos(4,selected_th(4),100)
-             end
+            if isempty(acceptable_sol)
+                fprintf('All solutions are out of range\n');
+                err = 1;
+            else
+
+                % finding the optimal solution
+                optimal = find_optimal(curr_theta,acceptable_sol)
+        
+                if isempty(optimal)
+                    fprintf("None of the solutions are in range\n");
+                    
+                else
+       
+                    arb.setpos(1,optimal(1),100)
+                    arb.setpos(2,optimal(2)-deg2rad(90),100)
+                    arb.setpos(3,optimal(3),100)
+                    arb.setpos(4,optimal(4),100)
+                end
+            end
         end
     end
 end
