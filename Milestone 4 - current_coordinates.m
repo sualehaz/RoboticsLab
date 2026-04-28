@@ -1,64 +1,23 @@
 %updated code from the report 
 %obtaining depth and rgb from depth_sensor function
-function [x, y, z] = current_coordinates
-[depth_img, rgb_img, depth_data] = depth_sensor();
-
-%% 1. Read Image
-imgRGB = rgb_img;
-figure; 
-imshow(imgRGB);
-title('Original RGB Image');
-
-%% 2. Convert to LAB
-imgLab = rgb2lab(imgRGB); % Switch to LAB space to make color separation easier
-[L,a,b] = imsplit(imgLab); % Break it down into lightness and color channels
-figure;
-imshow(imgLab);
-title ('LAB image');
-
-%% 3. Segment Yellow Block
-yellowMask = b > 30; % Isolating yellow using the 'b' channel (blue-yellow)
-yellowMask = bwareaopen(yellowMask, 200); % Getting rid of small noise or "speckles"
-figure;
-imshow(yellowMask)
-title ('yellow mask applied');
-
-%% 3. Segment Blue Block
-blueMask = b < -25; % Isolating yellow using the 'b' channel (blue-yellow)
-blueMask = bwareaopen(blueMask, 200); % Getting rid of small noise or "speckles"
-figure;
-imshow(blueMask)
-title ('blue mask applied');
-
-%% 3. Segment Red Block
-redMask = a > 31; % Isolating yellow using the 'b' channel (blue-yellow)
-redMask = bwareaopen(redMask, 200); % Getting rid of small noise or "speckles"
-figure;
-imshow(redMask)
-title ('red mask applied');
-
-%% 3. Segment Green Block
-greenMask = a < -17; % Isolating yellow using the 'b' channel (blue-yellow)
-greenMask = bwareaopen(greenMask, 200); % Getting rid of small noise or "speckles"
-figure;
-imshow(greenMask)
-title ('green mask applied');
-
+function [x, y, z] = current_coordinates(Mask)
+%% Initializing image data
+[depth_img, imgRGB, depth_data] = depth_sensor();
 %% 4. Extract Properties
 %Use regionprops to find where the block is and how it's sitting
-yellowStats = regionprops(yellowMask, ...
+Stats = regionprops(Mask, ...
 'BoundingBox','Centroid','Area','Orientation', 'MajorAxisLength','MinorAxisLength');
 
 %% 5. Making a box around the block with the right orientation
-y = yellowStats.Orientation;
+y = Stats.Orientation;
 theta = -deg2rad(y); % Flipping the angle to radians for math
 
-center_pts = yellowStats.Centroid;
+center_pts = Stats.Centroid;
 cx = center_pts(1); % Center point X
 cy = center_pts(2); % Center point Y
 
-mal = yellowStats.MajorAxisLength;
-mil = yellowStats.MajorAxisLength;
+mal = Stats.MajorAxisLength;
+mil = Stats.MajorAxisLength;
 L = mal / 2; % Half-length
 W = mal / 2; % Half-width
 % Setting up the corners of a rectangle centered at (0,0) before we rotate it
@@ -75,7 +34,7 @@ rotated = R * corners; % Spin the corners by our angle
 x = rotated(1,:) + cx;
 y = rotated(2,:) + cy;
 figure;
-imshow(yellowMask)
+imshow(Mask)
 title('bounding box applied');
 hold on
 plot([x x(1)], [y y(1)], 'r', 'LineWidth', 2)
@@ -132,7 +91,7 @@ hold off
 
 %% 9. 3D Transformation (Camera to Block) and finding physical dimensions of depth
 height = [];
-maskedDepth = depth_img .* yellowMask; % Multiplying mask with depth image to find the height of the yellow block only
+maskedDepth = depth_img .* Mask; % Multiplying mask with depth image to find the height of the yellow block only
 [rows, cols] = size(maskedDepth);
 k=1;
 for i = 1:rows
@@ -194,7 +153,7 @@ quiver3(bx, by, bz, ux(1), ux(2), ux(3), 'r', 'LineWidth', 2); % Block X
 quiver3(bx, by, bz, uy(1), uy(2), uy(3), 'g', 'LineWidth', 2); % Block Y
 quiver3(bx, by, bz, uz(1), uz(2), uz(3), 'b', 'LineWidth', 2); % Block Z
 plot3(bx, by, bz, 'ko', 'MarkerFaceColor', 'y', 'MarkerSize', 8);
-text(bx, by, bz, ' Yellow Block', 'FontSize', 10);
+text(bx, by, bz, 'Block', 'FontSize', 10);
 % Draw a dashed line from the camera to the block to show the path
 plot3([0 bx], [0 by], [0 bz], 'k--');
 view(3); % Tilt the view so we can see the 3D depth
