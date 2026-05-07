@@ -25,11 +25,9 @@ function err = setting_pose(arb, target_x, target_y, target_z)
         err = 1;
     else
         fprintf('Found %d valid IK solutions:\n\n', num_solutions);
-        figure;
         for i = 1:num_solutions
             th = ik_solutions(i, :)
             fk_sol = getEndEffectorState2(th(1), th(2), th(3), th(4))
-            fprintf('Displaying robot model: \n');
     
             % making the rigid body
             robot = rigidBodyTree("MaxNumBodies",4,"DataFormat","row");
@@ -61,12 +59,8 @@ function err = setting_pose(arb, target_x, target_y, target_z)
                 addCollision(body, collisionObj);
                 addBody(robot, body, parentName);
             end
-             %showdetails(robot);
 
-            title('Current Robot State');
-            axis([-30 30 -30 30 0 40]);
-            grid on;
-                % getting current robot position
+            % getting current robot position
             curr_theta = [arb.getpos(1) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
             % out = getEndEffectorState2(curr_theta(1), curr_theta(2), curr_theta(3), curr_theta(4))
             % curr_theta = [-1.5 0.5 0.5 0.5]
@@ -78,8 +72,8 @@ function err = setting_pose(arb, target_x, target_y, target_z)
             end
            
         end
-        figure;
-        %number of solutions that don't collide
+        
+        %solutions that don't collide
         ik_solutions
         nonColliding_th
         %flag for checking whether the solutions fall under the range
@@ -120,9 +114,38 @@ function err = setting_pose(arb, target_x, target_y, target_z)
                     fprintf("None of the solutions are in range\n");
                     
                 else
-       
-                    arb.setpos(1,optimal(1),100)
+                    num_samples = 50;
+                    
+                    figure;
+                    for i = 1:num_samples
+                        fraction = i / num_samples; 
+                        optimal_config = curr_theta + fraction * (optimal - curr_theta);
+
+                        show(robot, optimal_config, 'Collisions', 'on', 'Visuals', 'on', 'Frames','on'); 
+
+                        % Code for displaying an xyz axis on the end effector
+
+                        hold on; 
+
+                        T_ee = getTransform(robot, optimal_config, 'link4');
+
+                        pos = T_ee(1:3, 4);
+                        R = T_ee(1:3, 1:3);
+
+                        axis_len = 5; 
+
+                        % (X=Red, Y=Green, Z=Blue)
+                        quiver3(pos(1), pos(2), pos(3), R(1,1), R(2,1), R(3,1), axis_len, 'r', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+                        quiver3(pos(1), pos(2), pos(3), R(1,2), R(2,2), R(3,2), axis_len, 'g', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+                        quiver3(pos(1), pos(2), pos(3), R(1,3), R(2,3), R(3,3), axis_len, 'b', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+
+                        hold off;
+                        drawnow;
+                    end
+    
+
                     arb.setpos(2,optimal(2)-deg2rad(90),100)
+                    arb.setpos(1,optimal(1),100)
                     arb.setpos(3,optimal(3),100)
                     arb.setpos(4,optimal(4),100)
                 end
