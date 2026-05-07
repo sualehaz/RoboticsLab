@@ -23,18 +23,18 @@ yellowMask = bwareaopen(yellowMask, 200); % Getting rid of small noise or "speck
 % title ('yellow mask applied');
 
 %% 3. Segment Blue Block
-blueMask = b < -34; % Isolating yellow using the 'b' channel (blue-yellow)
+blueMask = b < -30; % Isolating yellow using the 'b' channel (blue-yellow)
 blueMask = bwareaopen(blueMask, 200); % Getting rid of small noise or "speckles"
-% figure;
-% imshow(blueMask);
-% title ('blue mask applied');
+figure;
+imshow(blueMask);
+title ('blue mask applied');
 
 %% 3. Segment Red Block
-redMask = a > 25; % Isolating yellow using the 'b' channel (blue-yellow)
+redMask = a > 28; % Isolating yellow using the 'b' channel (blue-yellow)
 redMask = bwareaopen(redMask, 200); % Getting rid of small noise or "speckles"
-figure;
-imshow(redMask);
-title ('red mask applied');
+% figure;
+% imshow(redMask);
+% title ('red mask applied');
 
 %% 3. Segment Green Block
 greenMask = a < -13; % Isolating yellow using the 'b' channel (blue-yellow)
