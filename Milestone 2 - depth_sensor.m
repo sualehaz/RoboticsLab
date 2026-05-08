@@ -7,7 +7,6 @@ pipe = realsense.pipeline();
 colorizer = realsense.colorizer();
 % Create a config object to specify configuration of pipeline
 cfg = realsense.config();
-
 %% Set configuration and start streaming with configuration
 % Stream options are in stream.m; These options tap into the various
 % sensors included in the camera
@@ -22,7 +21,6 @@ formatType = realsense.format('rgb8');
 cfg.enable_stream(streamType,formatType);
 % Start streaming on an arbitrary camera with chosen settings
 profile = pipe.start();
-
 %% Acquire and Set device parameters
 % Get streaming device's name
 dev = profile.get_device();
@@ -45,7 +43,6 @@ optionType = realsense.option('enable_auto_exposure');
 rgb_sensor.set_option(optionType,1);
 optionType = realsense.option('enable_auto_white_balance');
 rgb_sensor.set_option(optionType,1);
-
 %% Align the color frame to the depth frame and then get the frames
 % Get frames. We discard the first couple to allow
 % the camera time to settle
@@ -57,7 +54,6 @@ align_to_depth = realsense.align(realsense.stream.depth);
 fs = align_to_depth.process(fs);
 % Stop streaming
 pipe.stop();
-
 %% Depth Post-processing
 % Select depth frame
 depth = fs.get_depth_frame();
@@ -74,7 +70,6 @@ depth_p = spatial.process(depth);
 % temporal_filter(smooth_alpha, smooth_delta, persistence_control)
 temporal = realsense.temporal_filter(.13,20,3);
 depth_p = temporal.process(depth_p);
-
 %% Color Post-processing
 % Select color frame
 color = fs.get_color_frame();
@@ -88,7 +83,6 @@ img = permute(reshape(data', [3,depth_color.get_width(),depth_color.get_height()
 % Display image
 % imshow(img);
 % title(sprintf("Colorized depth frame from %s", name));
-
 %% Display RGB frame
 % Get actual data and convert into a format imshow can use
 % (Color data arrives as [R, G, B, R, G, B, ...] vector)fs
@@ -110,4 +104,6 @@ depth_img = ig;
 rgb_img = im;
 save('depth3.mat','depth_img')
 save('rgb3.png','rgb_img')
+% imshow(ig);
+imshow(im);
 end
