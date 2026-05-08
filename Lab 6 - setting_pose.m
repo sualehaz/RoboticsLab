@@ -61,6 +61,11 @@ function err = setting_pose(arb, target_x, target_y, target_z)
             end
 
             % getting current robot position
+            one =arb.getpos(1)
+            two= arb.getpos(2)
+            three= arb.getpos(3)
+            four= arb.getpos(4)
+
             curr_theta = [arb.getpos(1) arb.getpos(2)+deg2rad(90) arb.getpos(3) arb.getpos(4)]
             % out = getEndEffectorState2(curr_theta(1), curr_theta(2), curr_theta(3), curr_theta(4))
             % curr_theta = [-1.5 0.5 0.5 0.5]
