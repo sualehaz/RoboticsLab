@@ -1,23 +1,24 @@
 %updated code from the report 
 %obtaining depth and rgb from depth_sensor function
-function [x, y, z] = current_coordinates(Mask)
-%% Initializing image data
+function [x, y, z, aligned] = current_coordinates(Mask)
+aligned = 0;
 [depth_img, imgRGB, depth_data] = depth_sensor();
 %% 4. Extract Properties
 %Use regionprops to find where the block is and how it's sitting
 Stats = regionprops(Mask, ...
-'BoundingBox','Centroid','Area','Orientation', 'MajorAxisLength','MinorAxisLength');
+'BoundingBox','Centroid','Area','Orientation', 'MajorAxisLength','MinorAxisLength', 'EulerNumber')
+
 
 %% 5. Making a box around the block with the right orientation
-y = Stats.Orientation;
-theta = -deg2rad(y); % Flipping the angle to radians for math
+a = Stats.Orientation;
+theta = -deg2rad(a); % Flipping the angle to radians for math
 
 center_pts = Stats.Centroid;
 cx = center_pts(1); % Center point X
 cy = center_pts(2); % Center point Y
 
-mal = Stats.MajorAxisLength;
-mil = Stats.MajorAxisLength;
+mal = Stats.MajorAxisLength
+mil = Stats.MinorAxisLength
 L = mal / 2; % Half-length
 W = mal / 2; % Half-width
 % Setting up the corners of a rectangle centered at (0,0) before we rotate it
@@ -25,14 +26,14 @@ corners = [ -L -W;
 L -W;
 L W;
 -L W]';
-
 % Standard 2D rotation matrix
-R = [cos(theta) -sin(theta);
-sin(theta) cos(theta)];
-rotated = R * corners; % Spin the corners by our angle
-% Move the rotated box back onto the actual block position
-x = rotated(1,:) + cx;
-y = rotated(2,:) + cy;
+    R = [cos(theta) -sin(theta);
+    sin(theta) cos(theta)];
+    rotated = R * corners; % Spin the corners by our angle
+    % Move the rotated box back onto the actual block position
+    x = rotated(1,:) + cx;
+    y = rotated(2,:) + cy; 
+
 figure;
 imshow(Mask)
 title('bounding box applied');
@@ -45,7 +46,7 @@ figure;
 imshow(imgRGB)
 title ('Final Image with Orientation Labelled')
 hold on
-% Draw the box and local axes on the yellow block
+% Draw the box and local axes on the block
 plot([x x(1)], [y y(1)], 'k', 'LineWidth', 2)
 axisLength = 80;
 
@@ -92,19 +93,20 @@ hold off
 %% 9. 3D Transformation (Camera to Block) and finding physical dimensions of depth
 height = [];
 maskedDepth = depth_img .* Mask; % Multiplying mask with depth image to find the height of the yellow block only
-[rows, cols] = size(maskedDepth);
-k=1;
-for i = 1:rows
-for j = 1:cols
-if maskedDepth(i,j) > 0
-height(k) = maskedDepth(i,j);
-k= k+1;
-end
-end
-end
-avg_block_z = median(height) * 100 % height of block in cm
+max_Depth = max(maskedDepth(:))
+% [rows, cols] = size(max_Depth);
+% k=1;
+% for i = 1:rows
+%     for j = 1:cols
+%         if max_Depth(i,j) > 0
+%         height(k) = max_Depth(i,j);
+%         k= k+1;
+%         end
+%     end
+% end
+% avg_block_z = median(height) * 100 % height of block in cm
 
-depthToBlock = avg_block_z; % This is the Z distance from the camera lens to the block top
+depthToBlock = max_Depth * 10 % This is the Z distance from the camera lens to the block top
 % Calibration: How many centimeters is one pixel?
 pixelToCm = 0.1;
 tx = (cx - center_x) * pixelToCm;
@@ -159,4 +161,179 @@ plot3([0 bx], [0 by], [0 bz], 'k--');
 view(3); % Tilt the view so we can see the 3D depth
 hold off;
 
+%% Checking the orientation of the block
+
+dx = cx - center_x;
+dy = cy - center_y;
+
+radial_angle = atan2(dy, dx);
+
+% angle_diff = abs(atan2(sin(theta - radial_angle), cos(theta - radial_angle)));
+diff_y = abs(atan2(sin(theta - radial_angle), cos(theta - radial_angle)));
+diff_x = abs(atan2(sin((theta + pi/2) - radial_angle), cos((theta + pi/2) - radial_angle)));
+tolerance = deg2rad(30); % 10-degree tolerance for error
+%is_radially_aligned = (angle_diff < tolerance) || (abs(angle_diff - pi) < tolerance);
+is_radially_aligned_square = 0;
+is_radially_aligned_rect = 0;
+
+shape_ratio = Stats.MajorAxisLength / Stats.MinorAxisLength;
+is_square = shape_ratio <= 1.2; 
+
+y_aligned = (diff_y < tolerance) || (abs(diff_y - pi) < tolerance);
+x_aligned = (diff_x < tolerance) || (abs(diff_x - pi) < tolerance);
+if is_square
+        is_radially_aligned_square = y_aligned || x_aligned; % Either axis works for square
+        shape_str = 'SQUARE';
+    else
+        is_radially_aligned_rect = y_aligned; % Only Y-axis for rectangle
+        shape_str = 'RECTANGLE';
 end
+
+
+if is_radially_aligned_square
+    aligned = 1;
+    fprintf('Block is RADIALLY ALIGNED and SQUARE.\n');
+elseif is_radially_aligned_rect
+    aligned = 1;
+    fprintf('Block is RADIALLY ALIGNED and RECTANGLE.\n');
+else
+    fprintf('Block is NOT radially aligned.\n');
+end
+
+
+
+end
+
+% function [x, y, z, aligned] = current_coordinates(Mask)
+%     %% Initializing image data
+%     [depth_img, imgRGB, depth_data] = depth_sensor();
+%     aligned = 0;
+%     x=0;
+%     y=0;
+%     z=0;
+% 
+%     %% 4. Extract Properties
+%     Stats = regionprops(Mask, 'BoundingBox','Centroid','Area','Orientation', 'MajorAxisLength','MinorAxisLength');
+% 
+%     % Basic block data
+%     center_pts = Stats.Centroid;
+%     cx = center_pts(1); 
+%     cy = center_pts(2);
+%     orientation_deg = Stats.Orientation;
+%     theta = -deg2rad(orientation_deg); % Major Axis Angle (Y-axis)
+% 
+%     %% NEW: Shape and Alignment Logic
+%     % 1. Determine if it's a square or rectangle
+%     % If length and width are within 10% of each other, we call it a square
+%     shape_ratio = Stats.MajorAxisLength / Stats.MinorAxisLength;
+%     is_square = shape_ratio < 1.5; 
+% 
+%     % 2. Calculate the radial angle from circle center
+%     center_x = 290;
+%     center_y = 250;
+%     dx = cx - center_x;
+%     dy = cy - center_y;
+%     radial_angle = atan2(dy, dx);
+% 
+%     % 3. Calculate differences for both potential axes
+%     % diff_y checks alignment of the long side (Major Axis)
+%     % diff_x checks alignment of the short side (Minor Axis / theta + 90 deg)
+%     tolerance = deg2rad(10);
+%     diff_y = abs(atan2(sin(theta - radial_angle), cos(theta - radial_angle)));
+%     diff_x = abs(atan2(sin((theta + pi/2) - radial_angle), cos((theta + pi/2) - radial_angle)));
+% 
+%     y_aligned = (diff_y < tolerance) || (abs(diff_y - pi) < tolerance);
+%     x_aligned = (diff_x < tolerance) || (abs(diff_x - pi) < tolerance);
+% 
+%     % 4. Apply shape-specific rules
+%     if is_square
+%         is_radially_aligned = y_aligned || x_aligned; % Either axis works for square
+%         shape_str = 'SQUARE';
+%     else
+%         is_radially_aligned = y_aligned; % Only Y-axis for rectangle
+%         shape_str = 'RECTANGLE';
+%     end
+% 
+%     % 5. Skip if not aligned
+%     if ~is_radially_aligned
+%         fprintf('Block (%s) is NOT aligned. Skipping processing.\n', shape_str);
+%         return; % EXIT FUNCTION EARLY
+%     else
+%         aligned = 1;
+%         fprintf('Block (%s) is RADIALLY ALIGNED. Proceeding...\n', shape_str);
+%     end
+% 
+%     %% 5. Making a box (Only runs if aligned)
+%     mal = Stats.MajorAxisLength;
+%     mil = Stats.MinorAxisLength; % Use actual minor axis length here
+%     L = mal / 2; 
+%     W = mil / 2; 
+% 
+%     corners = [ -L -W; L -W; L W; -L W]';
+%     R = [cos(theta) -sin(theta); sin(theta) cos(theta)];
+%     rotated = R * corners;
+%     box_x = rotated(1,:) + cx;
+%     box_y = rotated(2,:) + cy;
+% 
+%     % Plotting Bounding Box
+%     figure; imshow(Mask); title(['Bounding Box: ' shape_str]); hold on;
+%     plot([box_x box_x(1)], [box_y box_y(1)], 'r', 'LineWidth', 2); hold off;
+% 
+%     %% 6 & 7. Local Axes Visualization
+%     figure; imshow(imgRGB); title ('Orientation and Alignment'); hold on;
+%     plot([box_x box_x(1)], [box_y box_y(1)], 'k', 'LineWidth', 2);
+%     axisLength = 80;
+% 
+%     x_axis = axisLength * R(1:2,2); 
+%     y_axis = axisLength * R(1:2,1); 
+% 
+%     quiver(cx, cy, x_axis(1), x_axis(2), 0, 'r','LineWidth',1); % X-axis
+%     quiver(cx, cy, y_axis(1), y_axis(2), 0, 'g','LineWidth',1); % Y-axis
+%     text(cx, cy, ' \odot Z_b', 'Color','c','FontSize',5,'FontWeight','bold');
+% 
+%     %% 8. Marking the Center Frame
+%     theta_c = 0;
+%     R_mat = [cos(theta_c) -sin(theta_c); sin(theta_c) cos(theta_c)];
+%     y_axis_c = [axisLength; 0];
+%     x_axis_c = [0; axisLength];
+%     x_rot = R_mat * x_axis_c;
+%     y_rot = R_mat * y_axis_c;
+%     quiver(center_x, center_y, x_rot(1), x_rot(2), 0, 'r','LineWidth',1); 
+%     quiver(center_x, center_y, y_rot(1), y_rot(2), 0, 'g','LineWidth',1); 
+%     plot(center_x, center_y, 'g', 'MarkerSize', 8, 'LineWidth', 2);
+% 
+%     %% 9. 3D Transformation
+%     maskedDepth = depth_img .* Mask;
+%     height_vals = maskedDepth(maskedDepth > 0);
+%     avg_block_z = median(height_vals) * 100;
+% 
+%     pixelToCm = 0.1;
+%     tx = (cx - center_x) * pixelToCm;
+%     ty = (cy - center_y) * pixelToCm;
+%     tz = avg_block_z;
+% 
+%     R_cb = [ cos(theta) -sin(theta) 0; sin(theta) cos(theta) 0; 0 0 1];
+%     T_c_b = [ R_cb, [tx; ty; tz]; 0, 0, 0, 1 ];
+% 
+%     % Output standard coordinates
+%     x = ty; y = tx; z = tz;
+% 
+%     %% 10. 3D Visualization
+%     figure; hold on; grid on; axis equal;
+%     set(gca, 'ZDir', 'reverse');
+%     xlabel('X (cm)'); ylabel('Y (cm)'); zlabel('Z (cm)');
+%     quiver3(0,0,0, 5, 0, 0, 'r', 'LineWidth', 2); 
+%     quiver3(0,0,0, 0, 5, 0, 'g', 'LineWidth', 2); 
+%     quiver3(0,0,0, 0, 0, 5, 'b', 'LineWidth', 2); 
+% 
+%     bx = T_c_b(1,4); by = T_c_b(2,4); bz = T_c_b(3,4);
+%     ux = T_c_b(1:3, 1) * 5; uy = T_c_b(1:3, 2) * 5; uz = T_c_b(1:3, 3) * 5;
+% 
+%     quiver3(bx, by, bz, ux(1), ux(2), ux(3), 'r', 'LineWidth', 2); 
+%     quiver3(bx, by, bz, uy(1), uy(2), uy(3), 'g', 'LineWidth', 2); 
+%     quiver3(bx, by, bz, uz(1), uz(2), uz(3), 'b', 'LineWidth', 2); 
+%     plot3(bx, by, bz, 'ko', 'MarkerFaceColor', 'y', 'MarkerSize', 8);
+%     plot3([0 bx], [0 by], [0 bz], 'k--');
+%     view(3); hold off;
+% 
+% end
