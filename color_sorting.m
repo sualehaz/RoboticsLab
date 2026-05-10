@@ -25,6 +25,7 @@ function color_sorting
     [labeledImage1, numObjects1] = bwlabel(blueMask);
     [labeledImage2, numObjects2] = bwlabel(redMask);
 
+    spacing = 4; 
 
     for i = 1:numObjects1
         objectNumber = i;
@@ -36,7 +37,7 @@ function color_sorting
         [x_initial, y_initial, depth, aligned] = current_coordinates(objectMask);
         
         % Destination coordinates of the block
-        x_final = 0;
+        x_final = 0+(i-1)*spacing;
         y_final = 15;
 
         % checking orientation of the block
@@ -93,7 +94,7 @@ function color_sorting
         [x2_initial, y2_initial, depth, aligned] = current_coordinates(objectMask);
         
         % Destination coordinates of the block
-          x2_final = 0;
+          x2_final = 0+(i-1)*spacing;
           y2_final = -15;
 
         % checking orientation of the block
