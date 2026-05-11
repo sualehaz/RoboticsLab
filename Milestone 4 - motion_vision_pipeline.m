@@ -16,6 +16,7 @@ function motion_vision_pipeline
     [redMask, blueMask, greenMask, yellowMask] = creating_masks(imgRGB);
     
     [labeledImage, numObjects] = bwlabel(redMask);
+    
     for i = 1:numObjects
         objectNumber = i;
         
@@ -23,7 +24,7 @@ function motion_vision_pipeline
         imshow(objectMask)
         
         % Getting the coordinates of the block with the selected color
-        [x_initial, y_initial, depth, aligned] = current_coordinates(objectMask);
+        [x_initial, y_initial, depth, aligned] = current_coordinates(objectMask,depth_img, imgRGB, depth_data);
         
         % Destination coordinates of the block
         x_final = 0;
@@ -86,6 +87,7 @@ function motion_vision_pipeline
     arb.setpos(1, 0, 100);
     arb.setpos(3, 0, 100);
     arb.setpos(4, 0, 100);
+    fprintf("All cubes placed <3")
 
 end
 
