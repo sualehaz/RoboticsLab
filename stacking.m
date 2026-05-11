@@ -10,6 +10,7 @@ pause(3);
 [redMask, blueMask, greenMask, yellowMask] = creating_masks(imgRGB);
 
 Mask = yellowMask;
+spacing = 4;
 % 
 % [labeledImage, numObjects] = bwlabel(Mask);
 % allBlockDepths = zeros(1, numObjects);
@@ -27,7 +28,7 @@ Mask = yellowMask;
 
  % Constant: distance from camera to the work surface
     boardDistance = 45.0; 
-    x_final = 0;
+    x_final = 0+(i-1)*spacing;
     y_final = -17;
     
     % objectMask = (labeledImage == i);
@@ -44,17 +45,30 @@ Mask = yellowMask;
     topDepth = min(pixelDepths) * 10
     blockHeight = boardDistance - topDepth
 
-    blockHeight = topDepth
+    blockHeight = topDepth 
+    blockHeight = blockHeight*2
     
     % Get coordinates for the robotic arm
 
     fprintf('Object %d: Height is %.2f cm at [%.1f, %.1f]\n', i, blockHeight, targetX, targetY);
 
     % pre pick pose
-    setting_pose(arb, targetX, targetY, blockHeight+7)
-    pause(3);
-
-    setting_pose(arb, targetX, targetY, blockHeight+2.5)
+    if i == 1 
+        setting_pose(arb, targetX, targetY, blockHeight+6)
+        pause(3);
+    
+        setting_pose(arb, targetX, targetY, blockHeight+3) 
+    elseif i ==2
+         setting_pose(arb, targetX, targetY, blockHeight+6)
+        pause(3);
+    
+        setting_pose(arb, targetX, targetY, blockHeight-1)
+    else 
+        setting_pose(arb, targetX, targetY, blockHeight+6)
+        pause(3);
+    
+        setting_pose(arb, targetX, targetY, blockHeight-3)
+    end
 
     % setting_pose(arb, targetX, targetY, blockHeight+7)
     % pause(4);
@@ -76,7 +90,7 @@ Mask = yellowMask;
     pause(2);
     
     % slow to avoid knocking over the pile
-    arb.setpos(2, 0, 50);
+    arb.setpos(2, 0.5, 50);
     pause(4);
     
     setting_pose(arb, x_final, y_final, 14 + ((i-2)*3))
