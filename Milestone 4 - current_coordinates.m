@@ -1,8 +1,8 @@
 %updated code from the report 
 %obtaining depth and rgb from depth_sensor function
-function [x, y, z, aligned] = current_coordinates(Mask)
+function [x, y, z, aligned] = current_coordinates(Mask, depth_img, imgRGB, depth_data)
 aligned = 0;
-[depth_img, imgRGB, depth_data] = depth_sensor();
+% [depth_img, imgRGB, depth_data] = depth_sensor();
 %% 4. Extract Properties
 %Use regionprops to find where the block is and how it's sitting
 Stats = regionprops(Mask, ...
@@ -171,7 +171,7 @@ radial_angle = atan2(dy, dx);
 % angle_diff = abs(atan2(sin(theta - radial_angle), cos(theta - radial_angle)));
 diff_y = abs(atan2(sin(theta - radial_angle), cos(theta - radial_angle)));
 diff_x = abs(atan2(sin((theta + pi/2) - radial_angle), cos((theta + pi/2) - radial_angle)));
-tolerance = deg2rad(30); % 10-degree tolerance for error
+tolerance = deg2rad(38); % 10-degree tolerance for error
 %is_radially_aligned = (angle_diff < tolerance) || (abs(angle_diff - pi) < tolerance);
 is_radially_aligned_square = 0;
 is_radially_aligned_rect = 0;
