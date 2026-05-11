@@ -22,11 +22,11 @@ function color_sorting
     [redMask, blueMask, greenMask, yellowMask] = creating_masks(imgRGB);
     
     %select colors to be sorted
-    [labeledImage1, numObjects1] = bwlabel(blueMask);
-    [labeledImage2, numObjects2] = bwlabel(redMask);
+    [labeledImage1, numObjects1] = bwlabel(yellowMask);
+    [labeledImage2, numObjects2] = bwlabel(greenMask);
 
-    spacing = 4; 
-
+    spacing = 4;
+    
     for i = 1:numObjects1
         objectNumber = i;
         
@@ -34,7 +34,7 @@ function color_sorting
         imshow(objectMask)
         
         % Getting the coordinates of the block with the selected color
-        [x_initial, y_initial, depth, aligned] = current_coordinates(objectMask);
+        [x_initial, y_initial, depth, aligned] = current_coordinates(objectMask,depth_img, imgRGB, depth_data);
         
         % Destination coordinates of the block
         x_final = 0+(i-1)*spacing;
@@ -78,20 +78,19 @@ function color_sorting
             setting_pose(arb, x_final, y_final, 14);
             if err == 1, return; end
             
-            pause(1);
-            pause(2)
+            pause(1)
         end
     end
     
     
-        for i = 1:numObjects2
+    for i = 1:numObjects2
         objectNumber = i;
         
         objectMask = (labeledImage2 == objectNumber);
         imshow(objectMask)
         
         % Getting the coordinates of the block with the selected color
-        [x2_initial, y2_initial, depth, aligned] = current_coordinates(objectMask);
+        [x2_initial, y2_initial, depth, aligned] = current_coordinates(objectMask, depth_img, imgRGB, depth_data);
         
         % Destination coordinates of the block
           x2_final = 0+(i-1)*spacing;
@@ -136,14 +135,13 @@ function color_sorting
             if err == 1, return; end
             
             pause(1);
-            pause(2)
         end
-        end
+    end
     arb.setpos(2, pi/2, 100);
     arb.setpos(1, 0, 100);
     arb.setpos(3, 0, 100);
     arb.setpos(4, 0, 100);
-    
+    fprintf("All cubes placed <3\n")
 
 end
 
