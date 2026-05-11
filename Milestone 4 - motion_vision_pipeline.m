@@ -15,7 +15,10 @@ function motion_vision_pipeline
     imshow(depth_img)
     [redMask, blueMask, greenMask, yellowMask] = creating_masks(imgRGB);
     
-    [labeledImage, numObjects] = bwlabel(redMask);
+    [labeledImage, numObjects] = bwlabel(yellowMask);
+
+    spacing = 4;
+
     
     for i = 1:numObjects
         objectNumber = i;
@@ -27,7 +30,7 @@ function motion_vision_pipeline
         [x_initial, y_initial, depth, aligned] = current_coordinates(objectMask,depth_img, imgRGB, depth_data);
         
         % Destination coordinates of the block
-        x_final = 0;
+        x_final = 0+(i-1)*spacing;
         y_final = 15;
         % checking orientation of the block
         
@@ -45,11 +48,12 @@ function motion_vision_pipeline
 
             % avoiding inter-block collision
             pause(2)
-            arb.setpos(2, 0, 100);
-            pause(1)
+            arb.setpos(2, 0.5, 100);
+            pause(3)
             
             % Going to specified destination coordinates in pre-place position
             err = setting_pose(arb, x_final, y_final, 14) % keeping it higher to prevent collision
+            pause(3)
             if err == 1, return; end
             
             % Going to place position.
