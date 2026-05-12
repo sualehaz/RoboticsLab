@@ -56,7 +56,7 @@ function color_sorting
 
             % avoiding inter-block collision
             pause(2)
-            arb.setpos(2, 0, 100);
+            arb.setpos(2, 0.5, 100);
             pause(1)
             
             % Going to specified destination coordinates in pre-place position
@@ -112,7 +112,7 @@ function color_sorting
 
             % avoiding inter-block collision
             pause(2)
-            arb.setpos(2, 0, 100);
+            arb.setpos(2, 0.5, 100);
             pause(1)
             
             % Going to specified destination coordinates in pre-place position
