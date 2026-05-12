@@ -19,7 +19,6 @@ function motion_vision_pipeline
 
     spacing = 4;
 
-    
     for i = 1:numObjects
         objectNumber = i;
         
@@ -79,19 +78,12 @@ function motion_vision_pipeline
             % Robot going back to default position 
             
             pause(2)
-             
-            % if abs(x_initial - x_final)<=1.5 && abs(y_initial - y_final)<1.5
-            % 
-            %     break;
-            % end
         end
     end
-    fprintf("All cubes placed\n")
     arb.setpos(2, pi/2, 100);
     arb.setpos(1, 0, 100);
     arb.setpos(3, 0, 100);
     arb.setpos(4, 0, 100);
     fprintf("All cubes placed <3\n")
-
 end
 
