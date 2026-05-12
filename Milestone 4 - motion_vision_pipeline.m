@@ -91,7 +91,7 @@ function motion_vision_pipeline
     arb.setpos(1, 0, 100);
     arb.setpos(3, 0, 100);
     arb.setpos(4, 0, 100);
-    fprintf("All cubes placed <3")
+    fprintf("All cubes placed <3\n")
 
 end
 
