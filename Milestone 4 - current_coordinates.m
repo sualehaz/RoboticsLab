@@ -94,17 +94,6 @@ hold off
 height = [];
 maskedDepth = depth_img .* Mask; % Multiplying mask with depth image to find the height of the yellow block only
 max_Depth = max(maskedDepth(:))
-% [rows, cols] = size(max_Depth);
-% k=1;
-% for i = 1:rows
-%     for j = 1:cols
-%         if max_Depth(i,j) > 0
-%         height(k) = max_Depth(i,j);
-%         k= k+1;
-%         end
-%     end
-% end
-% avg_block_z = median(height) * 100 % height of block in cm
 
 depthToBlock = max_Depth * 10 % This is the Z distance from the camera lens to the block top
 % Calibration: How many centimeters is one pixel?
